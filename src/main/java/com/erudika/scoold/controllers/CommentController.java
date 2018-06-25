@@ -47,6 +47,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import com.erudika.scoold.utils.SlackNotifier;
 
 /**
  *
@@ -59,12 +60,14 @@ public class CommentController {
 	private final ScooldUtils utils;
 	private final ParaClient pc;
 	private final Emailer emailer;
+	private final SlackNotifier slackNotifier;
 
 	@Inject
 	public CommentController(ScooldUtils utils, Emailer emailer) {
 		this.utils = utils;
 		this.pc = utils.getParaClient();
 		this.emailer = emailer;
+		this.slackNotifier = new SlackNotifier();
 	}
 
 	@GetMapping("/{id}")
@@ -157,8 +160,11 @@ public class CommentController {
 					model.put("logourl", Config.getConfigParam("small_logo_url", "https://scoold.com/logo.png"));
 					model.put("heading", Utils.formatMessage("New comment on <a href='{0}'>{1}</a>", postURL, parentPost.getTitle()));
 					model.put("body", Utils.formatMessage("<h2>{0} {1}:</h2><div class='panel'>{2}</div>", pic, name, body));
-					emailer.sendEmail(Arrays.asList(author.getEmail()), name + " commented on your post",
-							Utils.compileMustache(model, utils.loadEmailTemplate("notify")));
+					// emailer.sendEmail(Arrays.asList(author.getEmail()), name + " commented on your post",
+					// 		Utils.compileMustache(model, utils.loadEmailTemplate("notify")));
+
+					String msg = name + " ha comentado en tu post -> " + postURL;
+					slackNotifier.sendNotification(author.getEmail(), msg);
 				}
 			}
 		}

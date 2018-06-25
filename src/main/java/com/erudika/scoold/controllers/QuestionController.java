@@ -59,6 +59,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import static com.erudika.scoold.ScooldServer.QUESTIONSLINK;
 import static com.erudika.scoold.ScooldServer.SPACE_COOKIE;
 import static com.erudika.scoold.utils.HttpUtils.getCookieValue;
+import com.erudika.scoold.utils.SlackNotifier;
 
 /**
  *
@@ -73,12 +74,14 @@ public class QuestionController {
 	private final ScooldUtils utils;
 	private final ParaClient pc;
 	private final Emailer emailer;
+	private final SlackNotifier slackNotifier;
 
 	@Inject
 	public QuestionController(ScooldUtils utils, Emailer emailer) {
 		this.utils = utils;
 		this.pc = utils.getParaClient();
 		this.emailer = emailer;
+		this.slackNotifier = new SlackNotifier();
 	}
 
 	@GetMapping({"/{id}", "/{id}/{title}"})
@@ -328,9 +331,16 @@ public class QuestionController {
 				}
 			}
 			if (parentPost.hasFollowers()) {
+				/*
 				emailer.sendEmail(new ArrayList<String>(parentPost.getFollowers().values()),
 						name + " replied to '" + Utils.abbreviate(reply.getTitle(), 50) + "...'",
 						Utils.compileMustache(model, utils.loadEmailTemplate("notify")));
+						*/
+				List<String> emails = new ArrayList<String>(parentPost.getFollowers().values());
+				String msg = name + " ha respondido a '" + Utils.abbreviate(reply.getTitle(), 50) + "...' -> " + postURL;
+				for(String email : emails){
+					slackNotifier.sendNotification(email, msg);
+				}
 			}
 		}
 	}
